@@ -408,12 +408,9 @@ void __llang_lexer_cleanup(LLANG_LEXER *lexer)
 {
 	lexer->file_name = NULL;
 	for(__LLANG_NODE *node = lexer->tokens->head;
-			node != NULL; )
+			node != NULL; node=node->next)
 	{
-		free(((LLANG_TOKEN*)node)->token);
-       		__LLANG_NODE *tmp = node->next;
-		free(node);
-		node = tmp;
+		free(((LLANG_TOKEN*)(node->data_ptr))->token); free(node->data_ptr);
 	}
 	llang_list_destroy(lexer->tokens);
 };
