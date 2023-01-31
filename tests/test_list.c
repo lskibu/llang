@@ -6,6 +6,9 @@
 # include "../src/node.h"
 
 
+const int N = 1e7+7;
+const int MOD = 986743;
+
 void print_list(__LLANG_LINKED_LIST *);
 
 int main()
@@ -14,20 +17,25 @@ int main()
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
     srand(tv.tv_sec*1000 + tv.tv_usec / 1000);
-    for(llang_i32 I=0; I< 1e6; I++)
+    clock_t ct = clock();
+    for(llang_i32 I=0; I< N; I++)
     {
-	llang_list_append(ll_list,(llang_ptr) (rand() % (llang_i64)1e4+7));
-	llang_list_push(ll_list,(llang_ptr) (rand() % (llang_i64)1e4+7));
+	llang_list_append(ll_list,(llang_ptr) (rand() % (llang_i64)MOD));
+	//llang_list_push(ll_list,(llang_ptr) (rand() % (llang_i64)1e4+7));
     }
-
+    ct = clock() - ct;
     printf("List contains: %d\n", ll_list->length);
-    printf("+++++++++++++++++++++++++++++++++++++++\n");
-    print_list(ll_list);
-    printf("+++++++++++++++++++++++++++++++++++++++\n");
+    //printf("+++++++++++++++++++++++++++++++++++++++\n");
+    //print_list(ll_list);
+    //printf("+++++++++++++++++++++++++++++++++++++++\n");
     clock_t c = clock();
-    printf("dups: %d\n",__llang_remove_duplicates(ll_list, NULL));
-    printf("took %.5f sec\n", ((float) clock()-c)/CLOCKS_PER_SEC);
-    print_list(ll_list);
+    //printf("dups: %d\n", llang_list_unique(ll_list, NULL));
+    llang_list_sort(ll_list, NULL);
+    printf("llang_list_sort took %.5f sec\n", ((float) clock()-c)/CLOCKS_PER_SEC);
+    printf("Inserted %d Items in %.5f sec\n", N, (float)ct/CLOCKS_PER_SEC);
+    //print_list(ll_list);
+    int ret = llang_list_find(ll_list, 54, NULL);
+    printf("number found at index %d\n", ret);
     llang_list_destroy(ll_list);
     return 0;
 }
