@@ -1,6 +1,7 @@
 #ifndef __LLANG_LEXER__
 #define __LLANG_LEXER__
 
+# include <ctype.h>
 # include "util.h"
 # include "node.h"
 
@@ -11,8 +12,11 @@
 
 
 # define ll_lexer_error(desc) {\
+	char *buf_ptr = buf;\
+	while(isspace(*(buf_ptr+buf_pos))) buf_ptr[buf_pos--] = '\0';\
+	while(isspace(*buf_ptr)) buf_ptr++,lex_pos--;\
 	fprintf(stderr, "[*] Lexer Error:\n" "%s:%d:%d invalid token !\n%s\n",\
-		lexer->file_name, cur_lin, lex_pos, buf);\
+		lexer->file_name, cur_lin, lex_pos, buf_ptr);\
 	for(int j=0; j < lex_pos-3; j++) fprintf(stderr, " "); fprintf(stderr, "__^\n");\
 	fprintf(stderr, "%s\n" , desc);\
 	exit (EXIT_FAILURE);\
@@ -43,6 +47,7 @@ type==TT_WHILE ? "TT_WHILE" : \
 type==TT_REPEAT ? "TT_REPEAT" : \
 type==TT_UNTIL ? "TT_UNTIL" : \
 type==TT_ENUM ? "TT_ENUM" : \
+type==TT_POINT ? "TT_POINT" : \
 type==TT_LABEL ? "TT_LABEL" : \
 type==TT_STRUCT ? "TT_STRUCT" : \
 type==TT_UNION ? "TT_UNION" : \

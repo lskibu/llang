@@ -6,7 +6,7 @@
 # include "node.h"
 # include "lexer.h"
 
-static llang_i32 buf_len = -1;
+static llang_i32 buf_pos = -1;
 static llang_char buf[BUFSIZ];
 static llang_i32 lex_pos = 0;
 static llang_i32 cur_lin = 0;
@@ -14,7 +14,7 @@ static llang_i32 cur_lin = 0;
 
 static void init_lexer()
 {
-	buf_len = -1;
+	buf_pos = -1;
 	lex_pos = 0;
 	memset(buf, 0, BUFSIZ);
 };
@@ -22,12 +22,11 @@ static void init_lexer()
 static void fill_buffer()
 {
 	do {
-		if((buf[++buf_len] = getchar() )== '\n') cur_lin++;
-	} while(buf[buf_len] != '\n' && 
-		buf[buf_len] != -1 &&
-		buf_len < BUFSIZ);
-	//buf[buf_len] = '\0';
-	if (buf_len >= BUFSIZ) {fprintf(stderr, "Warning! Line %d is Too long.\n", cur_lin);};
+		if((buf[++buf_pos] = getchar() )== '\n') cur_lin++;
+	} while(buf[buf_pos] != '\n' && 
+		buf[buf_pos] != -1 &&
+		buf_pos < BUFSIZ);
+	if (buf_pos == BUFSIZ) {fprintf(stderr, "Warning! Line %d is Too long.\n", cur_lin);};
 }
 ;
 
@@ -42,15 +41,18 @@ LLANG_TOKEN *__token_new(llang_str token, LL_T_TYPE type)
 LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 {
 	// update buffer
-	if(lex_pos >= buf_len || buf_len >= BUFSIZ) {
+	if(lex_pos >= buf_pos) {
 		init_lexer();
 		fill_buffer();
 	};
 	llang_i32 i = lex_pos;
 	LL_T_TYPE type = TT_NONE;
 
+	llang_i32 pnt = 0;
+	llang_i32 eps = 0;
+
 	for (;;) {
-		if(lex_pos >= buf_len) break;
+		if(lex_pos >= buf_pos) break;
 		
 		llang_char prev = lex_pos > 0 ? buf[lex_pos-1] : '\0';
 		llang_char curr = buf[lex_pos++];
@@ -65,7 +67,7 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 						
 				if(type==TT_NUMBER) {
 					if(isalpha(next) && tolower(next) != 'e') {ll_lexer_error("Invalid number");}
-					else if(ispunct(next)) goto __done;
+					else if((ispunct(next) && next != '.') || isspace(next)) goto __done;
 				} else if(type==TT_HEXNUM) {
 					if(!isxdigit(next)) {ll_lexer_error("Invalid Hex Character!");}
 					else if(ispunct(next) || isspace(next)) goto __done;
@@ -78,8 +80,13 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 			case 'a'...'z':
 				if(type==TT_NONE) type = TT_IDENT;
 				if(type==TT_NUMBER) {
-					if(tolower(curr=='e')) {if((isdigit(next)==false) && (next != '+') 
-							&& (next != '-')) {ll_lexer_error("Invalid number")}; };
+					if(tolower(curr=='e')) {
+						if((isdigit(next)==false) && (next != '+') 
+							&& (next != '-')) 
+						{ll_lexer_error("Invalid number")}; 
+						if(eps>1) {ll_lexer_error("invalid number too many 'e'");};
+						eps++;
+					};
 				} else if(type==TT_IDENT) { if(isspace(next) || (ispunct(next) && (next != '_'))) goto __done; }
 				break;
 
@@ -101,19 +108,21 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 				goto __done;
 				
 			case '-':
-				if(type == TT_NUMBER && tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
-				else {
+				if(type == TT_NUMBER) { 
+					if(tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
+				} else {
 				type = TT_MINUS;
 				goto __done;
 				}
-				
+				break;
 			case '+':
-				if(type==TT_NUMBER && tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
-				else {
+				if(type==TT_NUMBER) {
+				       	if(tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
+				} else {
 				type = TT_PLUS;
 				goto __done;
 				}
-		
+				break;	
 			case '*':
 				type = TT_MULT;
 				goto __done;
@@ -185,7 +194,16 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 			case ']':
 				type = TT_RBRAKET;
 				goto __done;
-	
+			case '.':
+				if(type==TT_NUMBER) {
+					if(isdigit(next)==false) {ll_lexer_error("invalid number");}
+					if(pnt>0||eps>0) {ll_lexer_error("invalid number");};
+					pnt++;
+				} else {
+					type = TT_POINT;
+					goto __done;
+				}
+				break;	
 			case '#':
 				while(buf[lex_pos] != '\n' && buf[lex_pos++] != EOF);
 				break;
@@ -197,25 +215,14 @@ __done:
 	if(i==lex_pos) return NULL; // empty str
 	LLANG_QUEUE q = NULL;
 	if(type== TT_NONE) return NULL;
-	else if(type==TT_NUMBER) {
-			if(lex_pos-i > 25) ll_lexer_error("invalid width, number too long");
-			llang_i32 pnt = 0;
-			llang_i32 eps = 0;
-			for(llang_i32 j=i;j < lex_pos; j++)
-			{
-				if(eps>0 && tolower(buf[j]) == 'e') ll_lexer_error("invalid number, too many eeee");
-				if(tolower(buf[j])=='e') eps++;
-				if(pnt>0 && buf[j] == '.') ll_lexer_error("invalid number, too many points XDD");
-				if(buf[j]=='.') pnt++;
-			}
-	}
+	if(type==TT_NUMBER && (lex_pos-i) > 25) {ll_lexer_error("invalid width, number is too long");}
 	else if(type==TT_IDENT) { if(lex_pos-i >= 256) ll_lexer_error("invalid identifier, Too long"); }
 	else if(type==TT_QUOTE || type==TT_DQUOTE) {
 			q = llang_queue_create();
 			llang_bool bf = false;
 			while(((type == TT_QUOTE && buf[lex_pos] != '\'') || 
 				(type == TT_DQUOTE && buf[lex_pos] != '"'))
-				&& lex_pos < buf_len)
+				&& lex_pos < buf_pos)
 				{
 					if(bf==true)
 					{
@@ -410,7 +417,8 @@ void __llang_lexer_cleanup(LLANG_LEXER *lexer)
 	for(__LLANG_NODE *node = lexer->tokens->head;
 			node != NULL; node=node->next)
 	{
-		free(((LLANG_TOKEN*)(node->data_ptr))->token); free(node->data_ptr);
+		free(((LLANG_TOKEN*)(node->data_ptr))->token);
+		free(node->data_ptr);
 	}
 	llang_list_destroy(lexer->tokens);
 };
@@ -435,6 +443,7 @@ void __llang_lexer_lex(LLANG_LEXER *lexer)
 		else { printf("null token\n"); }
 
 	} while(buf[lex_pos] != EOF);
-	llang_lexer_destroy(lexer);
+	//llang_lexer_destroy(lexer);
 	if(fp) fclose(fp);
 };
+

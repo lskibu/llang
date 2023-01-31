@@ -61,7 +61,7 @@ llang_i32 __llang_list_find(__LLANG_LINKED_LIST *ll_list,llang_ptr
 
 void __llang_list_sort(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc);
 
-llang_u32 __llang_remove_duplicates(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc);
+llang_u32 __llang_list_remove_duplicates(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc);
 
 void __llang_list_destroy(__LLANG_LINKED_LIST **ll_list);
 
