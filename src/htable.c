@@ -22,10 +22,11 @@ static int compute_hash(HASH_TABLE *table, llang_ptr data_ptr) {
 			% MOD) % table->size;
 };
 
-struct TABLE_ITEM *__new_table_item(llang_ptr data_ptr)
+struct TABLE_ITEM *__new_table_item(llang_ptr data_ptr, int key)
 {
     struct TABLE_ITEM *item = llang_malloc(sizeof(struct TABLE_ITEM));
     item->data_ptr = data_ptr;
+    item->key = key;
     item->collisions = llang_list_create();
     return item;
 };
@@ -53,18 +54,15 @@ void __init_hash_table(HASH_TABLE *table, llang_lambda cmp_proc, llang_lambda da
 
 int __htable_insert(HASH_TABLE *table, llang_ptr data_ptr)
 {
-	struct TABLE_ITEM *item = __new_table_item(data_ptr);
-	item->data_ptr = data_ptr;
 	int hash = compute_hash(table, data_ptr);
 	if(table->items[hash] != NULL) {
 		if(ptr_to_offt(table->cmp_proc(table->items[hash]->data_ptr, 
-			data_ptr)) == 0) { __delete_table_item(&item); return -1; }
-		else if(llang_list_find(table->items[hash]->collisions, item->data_ptr, table->cmp_proc) >= 0) {
-				printf("duplicate collision found\n");
-				__delete_table_item(&item); return -1;
-		} else llang_list_append(table->items[hash]->collisions, item); 
-	} else table->items[hash] = item;
-
+			data_ptr)) == 0) return -1;
+		else if(llang_list_find(table->items[hash]->collisions, data_ptr, table->cmp_proc) >= 0)
+			return -1;
+		else llang_list_append(table->items[hash]->collisions, data_ptr); 
+	} else table->items[hash] = __new_table_item(data_ptr, hash);
+	
 	return hash;
 }
 ;

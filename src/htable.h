@@ -6,6 +6,7 @@
 
 struct TABLE_ITEM {
 	llang_ptr data_ptr;
+	int key;
 	LLANG_LIST *collisions;
 };
 
@@ -19,7 +20,7 @@ struct HASH_TABLE {
 
 typedef struct HASH_TABLE HASH_TABLE;
 
-struct TABLE_ITEM *__new_table_item(llang_ptr data_ptr);
+struct TABLE_ITEM *__new_table_item(llang_ptr data_ptr, int key);
 void __delete_table_item(struct TABLE_ITEM **item);
 
 HASH_TABLE *__new_hash_table(int size, int salt);
