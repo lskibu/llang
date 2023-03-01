@@ -4,24 +4,34 @@
 # include "util.h"
 # include "node.h"
 # include "lexer.h"
+# include "sym_table.h"
 
-enum LL_T_EXPR {
-	ET_ASSIGN,
-	ET_FUNC_CALL,
-	ET_IF,
-	ET_ELSE,
-	ET_WHILE,
-	ET_FOR,
-	ET_ARITHM,
-	ET_BOOL,
-	ET_BIT_MAN
+# define parser_error(tree, t, msg) {\
+	fprintf("[!] Syntax Error %s:%d:%d: %s", msg,\
+		       	(tree)->filename, (t)->lin, (t)->pos); \
 }
 
 enum LL_T_SCOPE {
-	ST_GLOBAL;
-	ST_PROC;
-	ST_EXPR;
-	ST_METHOD;
+	ST_GLOBAL,
+	ST_PROC,
+	ST_EXPR,
+	ST_METHOD
+};
+
+enum LL_T_STMT {
+	ST_ASSIGN,
+	ST_IF,
+	ST_ELSE,
+	ST_WHILE,
+	ST_FOR,
+	ST_REPEAT,
+	ST_PROC_CALL
+};
+
+struct LL_STMT {
+	enum LL_T_STMT type;
+	LLANG_LIST *exprs;
+	struct __LL_PARSE_SCOPE *scope;
 };
 
 struct LL_VAR {
@@ -46,7 +56,7 @@ struct LL_ATTRIBUTE {
 	struct LL_VAR *var;
 	LL_T_TYPE access_mod;
 	struct LL_CLASS *parent;
-}
+};
 
 struct LL_CLASS_METHOD {
 	llang_str name;
@@ -68,12 +78,10 @@ struct LL_CLASS {
 	LLANG_LIST *methods;
 	LLANG_LIST *attributes;
 	struct __LL_PARSE_SCOPE *parent;
-}
+};
 
 struct LL_EXPR {
-	LL_T_EXPR type;
 	LLANG_LIST *tokens;
-
 	struct __LL_PARSE_SCOPE *parent;	
 };
 
@@ -84,8 +92,8 @@ struct LL_STRUCT {
 };
 
 struct __LL_PARSE_SCOPE {
-	enum LL_T_SCPE type;
-	LLANG_LIST *exprs;
+	enum LL_T_SCOPE type;
+	LLANG_LIST *stmts;
 	LLANG_LIST *vars;
 	LLANG_LIST *procs;
 	LLANG_LIST *strcts;
@@ -97,16 +105,20 @@ struct __LL_PARSE_SCOPE {
 };
 
 struct __LL_PARSE_TREE {
+	char *filename;
+	LLANG_LEXER *lexer;
+	SYMBOL_TABLE *symbol_table;
 	struct __LL_PARSE_SCOPE *gscope;
 };
 
 struct __LL_PARSER {
-	LLANG_LIST *lexers;
-	struct __PARSE_TREE *out_tree;
+
+	LLANG_LIST *out_tree;
 };
 
 typedef struct LL_VAR LL_VAR;
 typedef struct LL_EXPR LL_EXPR;
+typedef struct LL_STMT LL_STMT;
 typedef struct LL_STRUCT LL_STRUCT;
 typedef struct LL_PROC LL_PROC;
 typedef struct LL_ATTRIBUTE LL_ATTRIBUTE;
@@ -118,6 +130,9 @@ typedef struct __LL_PARSER LL_PARSER;
 
 LL_VAR *__new_var();
 void __del_var(LL_VAR **var);
+
+LL_STMT *__new_stmt();
+void __del_stmt(LL_STMT **stmt);
 
 LL_PROC *__new_proc();
 void __init_proc(LL_PROC *proc);
@@ -151,7 +166,6 @@ LL_PARSE_TREE *__new_tree();
 void __del_tree(LL_PARSE_TREE **ptree);
 
 LL_PARSER *llang_parser_create(LLANG_LEXER *lexer);
-void __init_parser(LL_PARSER *parser);
 void llang_parser_parse(LL_PARSER *parser);
 void llang_parser_destroy(LL_PARSER **parser);
 
