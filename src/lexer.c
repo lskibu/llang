@@ -6,41 +6,29 @@
 # include "node.h"
 # include "lexer.h"
 
-# define BS (256)
-
-static llang_i32 buf_siz = 0;
-static llang_i32 buf_len = -1;
-static llang_str buf = NULL;
+static llang_i32 buf_pos = -1;
+static llang_char buf[BUFSIZ];
 static llang_i32 lex_pos = 0;
 static llang_i32 cur_lin = 0;
 
 
 static void init_lexer()
 {
-	buf_len = -1;
-	buf_siz = 0;
+	buf_pos = -1;
 	lex_pos = 0;
-	cur_lin = 0;
-	buf = llang_malloc(BS);
-	buf_siz += BS;
+	memset(buf, 0, BUFSIZ);
 };
 
 static void fill_buffer()
 {
 	do {
-		if((buf[++buf_len] = getchar() )== '\n') cur_lin++;
-		if(buf_len >= buf_siz-1) {buf = llang_realloc_arr(buf, buf_siz+BS, 1); buf_siz+=BS;};
-	} while(buf[buf_len] != '\n' && buf[buf_len] != -1);
-	//buf[buf_len] = '\0';
+		if((buf[++buf_pos] = getchar() )== '\n') cur_lin++;
+	} while(buf[buf_pos] != '\n' && 
+		buf[buf_pos] != -1 &&
+		buf_pos < BUFSIZ);
+	if (buf_pos == BUFSIZ) {fprintf(stderr, "Warning! Line %d is Too long.\n", cur_lin);};
 }
 ;
-
-static void cleanup()
-{
-	if(buf)
-		free(buf);
-	buf = NULL;
-}
 
 LLANG_TOKEN *__token_new(llang_str token, LL_T_TYPE type)
 {
@@ -53,14 +41,18 @@ LLANG_TOKEN *__token_new(llang_str token, LL_T_TYPE type)
 LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 {
 	// update buffer
-	if(lex_pos >= buf_len) {
+	if(lex_pos >= buf_pos) {
+		init_lexer();
 		fill_buffer();
 	};
 	llang_i32 i = lex_pos;
 	LL_T_TYPE type = TT_NONE;
 
+	llang_i32 pnt = 0;
+	llang_i32 eps = 0;
+
 	for (;;) {
-		if(lex_pos >= buf_len) break;
+		if(lex_pos >= buf_pos) break;
 		
 		llang_char prev = lex_pos > 0 ? buf[lex_pos-1] : '\0';
 		llang_char curr = buf[lex_pos++];
@@ -75,10 +67,12 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 						
 				if(type==TT_NUMBER) {
 					if(isalpha(next) && tolower(next) != 'e') {ll_lexer_error("Invalid number");}
-					else if(ispunct(next)) goto __done;
+					else if((ispunct(next) && next != '.') || isspace(next)) goto __done;
 				} else if(type==TT_HEXNUM) {
 					if(!isxdigit(next)) {ll_lexer_error("Invalid Hex Character!");}
 					else if(ispunct(next) || isspace(next)) goto __done;
+				} else if(type==TT_IDENT) {
+					if(isspace(next) || (ispunct(next) && next != '_')) goto __done;
 				}
 				break;
 			case '_':
@@ -86,9 +80,14 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 			case 'a'...'z':
 				if(type==TT_NONE) type = TT_IDENT;
 				if(type==TT_NUMBER) {
-					if(tolower(curr=='e')) {if((isdigit(next)==false) && (next != '+') 
-							&& (next != '-')) {ll_lexer_error("Invalid number")}; };
-				} else if(type==TT_IDENT) { if(isspace(next) || (ispunct(next) && next != '_')) goto __done; }
+					if(tolower(curr=='e')) {
+						if((isdigit(next)==false) && (next != '+') 
+							&& (next != '-')) 
+						{ll_lexer_error("Invalid number")}; 
+						if(eps>1) {ll_lexer_error("invalid number too many 'e'");};
+						eps++;
+					};
+				} else if(type==TT_IDENT) { if(isspace(next) || (ispunct(next) && (next != '_'))) goto __done; }
 				break;
 
 			case ':':
@@ -109,19 +108,21 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 				goto __done;
 				
 			case '-':
-				if(type == TT_NUMBER && tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
-				else {
+				if(type == TT_NUMBER) { 
+					if(tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
+				} else {
 				type = TT_MINUS;
 				goto __done;
 				}
-				
+				break;
 			case '+':
-				if(type==TT_NUMBER && tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
-				else {
+				if(type==TT_NUMBER) {
+				       	if(tolower(prev) == 'e' && !isdigit(next)) {ll_lexer_error("invalid number");}
+				} else {
 				type = TT_PLUS;
 				goto __done;
 				}
-		
+				break;	
 			case '*':
 				type = TT_MULT;
 				goto __done;
@@ -193,10 +194,16 @@ LLANG_TOKEN *__token_next(LLANG_LEXER *lexer)
 			case ']':
 				type = TT_RBRAKET;
 				goto __done;
-			
-			case 0x5c:
-				if(next == '\n') {fill_buffer(); continue;}
-				break;
+			case '.':
+				if(type==TT_NUMBER) {
+					if(isdigit(next)==false) {ll_lexer_error("invalid number");}
+					if(pnt>0||eps>0) {ll_lexer_error("invalid number");};
+					pnt++;
+				} else {
+					type = TT_POINT;
+					goto __done;
+				}
+				break;	
 			case '#':
 				while(buf[lex_pos] != '\n' && buf[lex_pos++] != EOF);
 				break;
@@ -208,25 +215,14 @@ __done:
 	if(i==lex_pos) return NULL; // empty str
 	LLANG_QUEUE q = NULL;
 	if(type== TT_NONE) return NULL;
-	else if(type==TT_NUMBER) {
-			if(lex_pos-i > 25) ll_lexer_error("invalid width, number too long");
-			llang_i32 pnt = 0;
-			llang_i32 eps = 0;
-			for(llang_i32 j=i;j < lex_pos; j++)
-			{
-				if(eps>0 && tolower(buf[j]) == 'e') ll_lexer_error("invalid number, too many eeee");
-				if(tolower(buf[j])=='e') eps++;
-				if(pnt>0 && buf[j] == '.') ll_lexer_error("invalid number, too many points XDD");
-				if(buf[j]=='.') pnt++;
-			}
-	}
+	if(type==TT_NUMBER && (lex_pos-i) > 25) {ll_lexer_error("invalid width, number is too long");}
 	else if(type==TT_IDENT) { if(lex_pos-i >= 256) ll_lexer_error("invalid identifier, Too long"); }
 	else if(type==TT_QUOTE || type==TT_DQUOTE) {
 			q = llang_queue_create();
 			llang_bool bf = false;
 			while(((type == TT_QUOTE && buf[lex_pos] != '\'') || 
 				(type == TT_DQUOTE && buf[lex_pos] != '"'))
-				&& lex_pos < buf_len)
+				&& lex_pos < buf_pos)
 				{
 					if(bf==true)
 					{
@@ -238,13 +234,9 @@ __done:
 								b = b | (isdigit(buf[++lex_pos]) ? buf[lex_pos] - '0' : 
 										tolower(buf[lex_pos]) - 'a');
 							}
-							llang_queue_put(q, b);
+							llang_queue_put(q, (llang_ptr) b);
 						}
-						else { // nothing to escape
-							llang_queue_put(q, (llang_ptr) '\\'); 
-							llang_queue_put(q, (llang_ptr) 'x'); 
-							llang_queue_put(q, (llang_ptr) buf[lex_pos]);
-						}
+						else {ll_lexer_error("invalid hex char after \\x");};
 						bf = false;
 					}
 					else if(buf[lex_pos] == 0x5c)
@@ -279,7 +271,7 @@ __done:
 								lex_pos++;
 								break;
 							default:
-								llang_queue_put(q, (llang_ptr) buf[lex_pos]);
+								{ll_lexer_error("invalid char after ESC");};
 								break;
 
 						};
@@ -287,6 +279,7 @@ __done:
 					else llang_queue_put(q, (llang_ptr) buf[lex_pos]);
 					lex_pos++;
 			}
+			if((type==TT_QUOTE&&buf[lex_pos] != '\'') || (type==TT_DQUOTE&&buf[lex_pos]!='"')) ll_lexer_error("invalid string");
 			lex_pos++; // skip last quote
 			type = TT_STRING;	
 	}
@@ -353,6 +346,8 @@ __done:
 		type = TT_PRIVATE;
 	else if(strcmp(s, "protected")==0)
 		type = TT_PROTECTED;
+	else if(strcmp(s, "self")==0)
+		type = TT_SELF;
 	else if(strcmp(s, "static")==0)
 		type = TT_STATIC;
 	else if(strcmp(s, "struct")==0)
@@ -387,7 +382,11 @@ __done:
 		type = TT_ENUM;
 	}
 
-	return __token_new(s, type);
+	LLANG_TOKEN *token = __token_new(s, type);
+	token->lin = cur_lin;
+	token->pos = i;
+
+	return token;
 };
 
 LLANG_LEXER *__llang_lexer_create(llang_str file_name)
@@ -416,12 +415,10 @@ void __llang_lexer_cleanup(LLANG_LEXER *lexer)
 {
 	lexer->file_name = NULL;
 	for(__LLANG_NODE *node = lexer->tokens->head;
-			node != NULL; )
+			node != NULL; node=node->next)
 	{
-		free(((LLANG_TOKEN*)node)->token);
-       		__LLANG_NODE *tmp = node->next;
-		free(node);
-		node = tmp;
+		free(((LLANG_TOKEN*)(node->data_ptr))->token);
+		free(node->data_ptr);
 	}
 	llang_list_destroy(lexer->tokens);
 };
@@ -446,6 +443,7 @@ void __llang_lexer_lex(LLANG_LEXER *lexer)
 		else { printf("null token\n"); }
 
 	} while(buf[lex_pos] != EOF);
-	cleanup();
+	//llang_lexer_destroy(lexer);
 	if(fp) fclose(fp);
 };
+

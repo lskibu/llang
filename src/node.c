@@ -4,11 +4,9 @@
 
 llang_ptr __llang_default_cmp_proc(llang_ptr ptr1, llang_ptr ptr2)
 {
-     if((llang_i64)  ptr_to_offt(((__LLANG_NODE *) ptr1)->data_ptr) < 
-		   (llang_i64)  ptr_to_offt(((__LLANG_NODE *) ptr2)->data_ptr))
+     if((llang_i64)  ptr_to_offt(ptr1) < (llang_i64) ptr_to_offt(ptr2))
 	     return (llang_ptr) 1;
-     else if ((llang_i64) ptr_to_offt(((__LLANG_NODE *) ptr1)->data_ptr) == 
-		    (llang_i64) ptr_to_offt(((__LLANG_NODE *) ptr2)->data_ptr))
+     else if ((llang_i64) ptr_to_offt(ptr1) == (llang_i64) ptr_to_offt(ptr2))
 	     return (llang_ptr) 0;
      else
 	     return (llang_ptr) -1;
@@ -111,11 +109,11 @@ void __llang_list_sort(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
     llang_bool __is_sorted(__LLANG_LINKED_LIST *ll_list)
     {
 	if(ll_list->length < 2) return true;
-	for(__LLANG_NODE *ll_node = ll_list->head;
-			ll_node->next != NULL;
-			ll_node = ll_node->next)
+	for(__LLANG_NODE *node = ll_list->head;
+			node->next != NULL;
+			node = node->next)
 	{
-	    if((llang_i32)ptr_to_offt(data_cmp_proc(ll_node, ll_node->next)) < 0)
+	    if((llang_i32)ptr_to_offt(data_cmp_proc(node->data_ptr, node->next->data_ptr)) < 0)
 		    return false;
 	}
 	return true;
@@ -127,7 +125,7 @@ void __llang_list_sort(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
 	for(__LLANG_NODE *ll_node = ll_list->head->next; ll_node ; ll_node = ll_node->next)
 	{
 	    __LLANG_NODE *ll_piv_node = ll_node->prev;
-	    	while(ll_piv_node && (llang_i32)ptr_to_offt(data_cmp_proc(ll_piv_node, ll_piv_node->next)) < 0)
+	    	while(ll_piv_node && (llang_i32)ptr_to_offt(data_cmp_proc(ll_piv_node->data_ptr, ll_piv_node->next->data_ptr)) < 0)
 	    	{
 			llang_ptr tmp_ptr = ll_piv_node->data_ptr;
 			ll_piv_node->data_ptr = ll_piv_node->next->data_ptr;
@@ -146,7 +144,7 @@ void __llang_list_sort(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
 	__LLANG_NODE *ll_prt_node = ll_head;
 	for(ll_node = ll_head; ll_node != ll_tail; ll_node = ll_node->next)
 	{
-	    if( (llang_i32)ptr_to_offt(data_cmp_proc(ll_node, ll_piv_node)) > 0)
+	    if( (llang_i32)ptr_to_offt(data_cmp_proc(ll_node->data_ptr, ll_piv_node->data_ptr)) > 0)
 	    {
 		    llang_ptr tmp_ptr = ll_prt_node->data_ptr;
 		    ll_prt_node->data_ptr = ll_node->data_ptr;
@@ -174,7 +172,7 @@ void __llang_list_sort(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
 	__quicksort(ll_list, ll_list->head, ll_list->tail);
 };
 
-llang_u32 __llang_remove_duplicates(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
+llang_u32 __llang_list_remove_duplicates(__LLANG_LINKED_LIST *ll_list, llang_lambda cmp_proc)
 {
     llang_lambda data_cmp_proc = cmp_proc ? cmp_proc : (llang_lambda) __llang_default_cmp_proc;
     llang_u32 dup_count = 0;
@@ -183,7 +181,7 @@ llang_u32 __llang_remove_duplicates(__LLANG_LINKED_LIST *ll_list, llang_lambda c
      __llang_list_sort(ll_list, cmp_proc);
      for(__LLANG_NODE *ll_node = ll_list->tail; ll_node->prev != NULL; ll_node = ll_node->prev)
      {
-	 if(ptr_to_offt(data_cmp_proc(ll_node, ll_node->prev)) == 0) {
+	 if(ptr_to_offt(data_cmp_proc(ll_node->data_ptr, ll_node->prev->data_ptr)) == 0) {
 		__llang_list_delete(ll_list, ll_node);
 		dup_count ++;
 	 }
