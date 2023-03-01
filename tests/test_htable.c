@@ -19,9 +19,9 @@ int main()
 	__init_hash_table(table, NULL, NULL);
 	int dups =0;
 	LLANG_LIST *list = llang_list_create();
-	for(int i=0;i < N; i++) llang_list_append(list, (llang_ptr) (rand()));
-	//int ld= llang_list_unique(list, NULL);
-	//printf("Removed %d duplicate items from the list\n", ld);
+	for(int i=0;i < N; i++) llang_list_append(list, (llang_ptr)i);// (rand() % MOD));
+	int ld= llang_list_unique(list, NULL);
+	printf("Removed %d duplicate items from the list\n", ld);
 	clock_t c = clock();
 	for(__LLANG_NODE *node=list->head;node!=NULL; node=node->next) {
 		int n = __htable_insert(table, node->data_ptr);
