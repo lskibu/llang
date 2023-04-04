@@ -9,12 +9,12 @@
 #  include <sys/types.h>
 
 # define __llang_system_failure()  { \
-	fprintf(stderr, "SYSTEM FAILURE: in %s:%s(), ERROR: %s\n",\
+	fprintf(stderr, "SYSTEM FAILURE: in %s:%s() - ERROR: %s\n",\
 			__FILE__,  __FUNCTION__, strerror(errno)); \
 	exit(EXIT_FAILURE);\
 	} ;
 # define __llang_program_failure(msg) {\
-	fprintf(stderr, "PROGRAM FAILURE: in %s:%s(), ERROR: %s\n",\
+	fprintf(stderr, "PROGRAM FAILURE: in %s:%s() - ERROR: %s\n",\
 			__FILE__, __FUNCTION__, msg); \
 	exit(EXIT_FAILURE); \
 	} ;

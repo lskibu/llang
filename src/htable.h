@@ -5,17 +5,17 @@
 # include "node.h"
 
 struct TABLE_ITEM {
-	llang_ptr data_ptr;
-	int key;
-	LLANG_LIST *collisions;
+  llang_ptr data_ptr;
+  int key;
+  LLANG_LIST *collisions;
 };
 
 struct HASH_TABLE {
-	int size;
-	int salt;
-	llang_lambda cmp_proc;
-	llang_lambda data_to_i32;
-	struct TABLE_ITEM **items;
+  int size;
+  int salt;
+  llang_lambda cmp_proc;
+  llang_lambda data_to_i32;
+  struct TABLE_ITEM **items;
 } ;
 
 typedef struct HASH_TABLE HASH_TABLE;

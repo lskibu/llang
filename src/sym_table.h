@@ -5,21 +5,21 @@
 # include "htable.h"
 
 typedef enum {
-	SYM_VAR,
-	SYM_UNIT,
-	SYM_STRUCT,
-	SYM_CLASS,
-	SYM_PROC
+  SYM_VAR,
+  SYM_UNIT,
+  SYM_STRUCT,
+  SYM_CLASS,
+  SYM_PROC
 } LL_T_SYM;
 
 typedef struct LL_SYMBOL {
-	char *symbol;
-	LL_T_SYM type ;
+  char *symbol;
+  LL_T_SYM type ;
 } LL_SYMBOL;
 
 typedef struct SYMBOL_TABLE {
-	char *unit;
-	HASH_TABLE *table;
+  char *unit;
+  HASH_TABLE *table;
 } SYMBOL_TABLE;
 
 LL_SYMBOL *__new_symbol(char *symbol,LL_T_SYM type);

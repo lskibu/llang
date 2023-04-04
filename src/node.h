@@ -23,15 +23,15 @@
 
 
 typedef struct __LLANG_NODE {
-	llang_ptr data_ptr;
-	struct __LLANG_NODE *next;
-	struct __LLANG_NODE *prev;
+  llang_ptr data_ptr;
+  struct __LLANG_NODE *next;
+  struct __LLANG_NODE *prev;
 } __LLANG_NODE;
 
 typedef struct __LLANG_LINKED_LIST {
-    llang_i32 length;
-    __LLANG_NODE *head;
-    __LLANG_NODE *tail;
+  llang_i32 length;
+  __LLANG_NODE *head;
+  __LLANG_NODE *tail;
 } __LLANG_LINKED_LIST;
 
 

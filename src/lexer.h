@@ -11,15 +11,21 @@
 # define llang_lexer_cleanup(lexer)		__llang_lexer_cleanup(lexer)
 
 
-# define ll_lexer_error(desc) {\
-	char *buf_ptr = buf;\
-	while(isspace(*(buf_ptr+buf_pos))) buf_ptr[buf_pos--] = '\0';\
-	while(isspace(*buf_ptr)) buf_ptr++,lex_pos--;\
-	fprintf(stderr, "[*] Lexer Error:\n" "%s:%d:%d invalid token !\n%s\n",\
-		lexer->file_name, cur_lin, lex_pos, buf_ptr);\
-	for(int j=0; j < lex_pos-3; j++) fprintf(stderr, " "); fprintf(stderr, "__^\n");\
-	fprintf(stderr, "%s\n" , desc);\
-	exit (EXIT_FAILURE);\
+# define ll_lexer_error(desc) \
+{\
+  int j; \
+  char *buf_ptr = buf;\
+  while(isspace(*(buf_ptr+buf_pos))) \
+    buf_ptr[buf_pos--] = '\0';\
+  while(isspace(*buf_ptr)) \
+    buf_ptr++,lex_pos--;\
+  fprintf(stderr, "[*] Lexer Error:\n" "%s:%d:%d invalid token !\n%s\n",\
+       lexer->file_name, cur_lin, lex_pos, buf_ptr);\
+  for(j=0; j < lex_pos-3; j++) \
+    fprintf(stderr, " "); \
+  fprintf(stderr, "__^\n");\
+  fprintf(stderr, "%s\n" , desc);\
+  exit (EXIT_FAILURE);\
 };
 
 # define ll_ttype_str(type) (type==TT_NONE ? "TT_NONE" : \
@@ -102,13 +108,13 @@ type==TT_SELF ? "TT_SELF" : "UNKOWN" )
 
 enum LL__TOKEN_TYPE {
 	TT_NONE,
-	// data
+	/* data */
 	TT_IDENT,
 	TT_NUMBER,
 	TT_HEXNUM,
 	TT_STRING,
 	TT_NIL,
-	// data types
+	/* data types */
 	TT_BOOL,
 	TT_I8,
 	TT_I16,
@@ -121,7 +127,7 @@ enum LL__TOKEN_TYPE {
 	TT_F32,
 	TT_F64,
 	TT_STR,
-	// keywords
+	/* keywords */
 	TT_CONST,
 	TT_VAR,
 	TT_FUNC,
@@ -154,7 +160,7 @@ enum LL__TOKEN_TYPE {
 	TT_IF,
 	TT_ELSE,
 	TT_SELF,
-	// other symbols
+	/* other symbols */
 	TT_POINT,
 	TT_COMMA,
 	TT_SEMICOLON,
@@ -188,10 +194,10 @@ enum LL__TOKEN_TYPE {
 };
 
 struct LL__TOKEN {
-	enum LL__TOKEN_TYPE type;
-	llang_str token;
-	llang_i32 pos;
-	llang_i32 lin;
+  enum LL__TOKEN_TYPE type;
+  llang_str token;
+  llang_i32 pos;
+  llang_i32 lin;
 }
 ;
 
@@ -200,8 +206,8 @@ typedef struct LL__TOKEN LLANG_TOKEN;
 typedef enum LL__TOKEN_TYPE LL_T_TYPE;
 
 struct LL__LEXER {
-	llang_str file_name;
-	LLANG_LIST *tokens;
+  llang_str file_name;
+  LLANG_LIST *tokens;
 };
 
 typedef struct LL__LEXER LLANG_LEXER;
