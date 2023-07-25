@@ -1,7 +1,7 @@
 
 obj = util.o node.o lexer.o htable.o test_lexer.o
 CC=gcc
-CFLAGS= -g -ggdb -Wall -Wextra -O3
+CFLAGS= -g -ggdb -Wall -Wextra -O2
 
 build: $(obj)
 	$(CC) output/*.o $(CFLAGS) -o bin/test_lexer
